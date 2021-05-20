@@ -10,3 +10,24 @@
 * Which actors died of substance intoxication?
 * Which actors were educated at John Marshall High School?
 * Which actors are born in North Philadelphia?
+
+
+
+#questions that worked sorted by rough syntactic structure
+# X(noun) Y(noun)
+# What is the narrative location of Ford v Ferrari?
+# What is the duration of Jason and the Argonauts?
+# Who are the voice actors for Adventure Time?
+
+# X(rootverb) Y(noun)
+# Who directed Snowpiercer?
+# Who casted in Uncut Gems?
+
+# X(rootverb) subX(noun) Y(noun)
+# Who designed the costumes for 'les intouchables'?
+# Who dubbed the voices for Adventure Time?
+
+
+# Y(noun) X(rootverb)
+# When did Alan Rickman die?
+# What was Interstellar influenced by?
