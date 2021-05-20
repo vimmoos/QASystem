@@ -1,0 +1,14 @@
+* QASystem
+  This repo contains the code for the final project of the course
+  ~Language Technology Practical~.
+  The aim of this repo is to build a QA system about movies using
+  ~wikidata~ as source of information.
+
+* Folder structure
+  + old_impl:
+    In this folder there are the old implementation that we
+    came up with during the single assignments.
+  + src:
+    The final code for the project
+  + test:
+    test files (e.g. questions)
