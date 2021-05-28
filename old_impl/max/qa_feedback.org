@@ -1,0 +1,6 @@
+
+9: System works.
+
+-1: No error handling, system crashes when asked an unexpected question type.
+
+-1: Insufficient use of Spacy (dependencies, POS-tags, and lemma’s)
