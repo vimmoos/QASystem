@@ -29,6 +29,7 @@ property_translator = {
     'owns': 'owned by',
     'produced': 'producer',
     'casted': 'cast',
+    'premiere': 'premierte',
 }
 
 obj_or_sub = {
@@ -97,7 +98,7 @@ def is_trivial(tokens: list):
     fir = tokens[0].text
     # sec = tokens[1].text
     # third = tokens[2].text
-    if fir not in ["What", "Who"]:
+    if fir not in ["What", "Who", "When"]:
         return False
     if tokens[1].lemma_ != "be":
         return False
@@ -165,11 +166,15 @@ def parse_question(question: str):
 # added a trivial retry policy when there is no results
 def run_query(prop, subj):
     subjs = make_request(subj)['search']
+    if len(subjs) > 3:
+        subjs = subjs[:3]
     props = make_request(prop, True)['search']
-    for x in range(5):
-        for y in range(5):
-            res = make_query(
-                query_template.format(subjs[y]['id'], props[x]['id']))
+    if len(props) > 3:
+        props = props[:3]
+    for x in range(len(props)):
+        for y in range(len(subjs)):
+            query = query_template.format(subjs[y-1]['id'], props[x-1]['id'])
+            res = make_query(query)
             if res['results']['bindings']:
                 return res
     return {
@@ -181,8 +186,12 @@ def run_query(prop, subj):
 
 def print_results(data: dict):
     for item in data['results']['bindings']:
-        for var in item:
-            print(item[var]['value'])
+        try:
+            for var in item:
+                print(item[var]['value'])
+        except TypeError:
+            print(item)
+            
 
 
 # old type of questions
