@@ -232,14 +232,13 @@ def run_query(prop, subj, type):
             props = props[:3]
         for x in range(len(subjs)):
             for y in range(len(props)):
-                print(x,)
                 if type == 1:
-                    query = query_how.format(subjs[y-1]['id'], props[x-1]['id'])
+                    query = query_how.format(subjs[x]['id'], props[y]['id'])
                     res = make_query(query)
                     if res['results']['bindings']:
                         return res
                 else:
-                    query = query_template.format(subjs[y]['id'], props[x]['id'])
+                    query = query_template.format(subjs[x]['id'], props[y]['id'])
                     res = make_query(query)
                     if res['results']['bindings']:
                         return res
@@ -252,12 +251,15 @@ def run_query(prop, subj, type):
 
 
 def print_results(data: dict):
-    for item in data['results']['bindings']:
+
         try:
-            for var in item:
-                print(item[var]['value'])
+            for item in data['results']['bindings']:
+                for var in item:
+                    print(item[var]['value'])
+            print("==========")
         except TypeError:
-            print(item)
+            print(data)
+            print("==========")
 
 
 # old type of questions
@@ -315,7 +317,7 @@ if __name__ == '__main__':
         for x in qs:
             prop, sub, type = parse_question(x)
             print(
-                "========\nthe question that is being tested is: {}\nthe answer is"
+                "the question that is being tested is: {}\nthe answer is"
                     .format(x))
             print_results(run_query(prop, sub, type))
     else:
