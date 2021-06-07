@@ -230,8 +230,8 @@ def run_query(prop, subj, type):
         props = make_request(prop, True)['search']
         if len(props) > 3:
             props = props[:3]
-        for x in range(3):
-            for y in range(3):
+        for x in range(len(subjs)):
+            for y in range(len(props)):
                 if type == 1:
                     query = query_how.format(subjs[y]['id'], props[x]['id'])
                 else:
