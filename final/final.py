@@ -114,7 +114,7 @@ def is_trivial(tokens: list):
     fir = tokens[0].text
     # sec = tokens[1].text
     # third = tokens[2].text
-    if fir not in ["What", "Who", "When"]:
+    if fir not in ["What", "Who", "When", "Who"]:
         return False
     if tokens[1].lemma_ != "be":
         return False
@@ -210,7 +210,7 @@ def parse_question(question: str):
     if is_trivial(tokens):
         prop, sub = trivial_question(tokens)
         prop, sub = make_string(prop), make_string(sub)
-    if is_how_many(tokens):
+    elif is_how_many(tokens):
         prop, sub = get_prop_sub(tokens)
         type = 1
     else:
@@ -232,14 +232,17 @@ def run_query(prop, subj, type):
             props = props[:3]
         for x in range(len(subjs)):
             for y in range(len(props)):
+                print(x,)
                 if type == 1:
-                    query = query_how.format(subjs[y]['id'], props[x]['id'])
+                    query = query_how.format(subjs[y-1]['id'], props[x-1]['id'])
+                    res = make_query(query)
+                    if res['results']['bindings']:
+                        return res
                 else:
-                    query = query_template.format(subjs[y - 1]['id'], props[x - 1]['id'])
-
-                res = make_query(query)
-                if res['results']['bindings']:
-                    return res
+                    query = query_template.format(subjs[y]['id'], props[x]['id'])
+                    res = make_query(query)
+                    if res['results']['bindings']:
+                        return res
     except KeyError:
         return {
             'results': {
