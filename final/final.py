@@ -114,7 +114,7 @@ def is_trivial(tokens: list):
     fir = tokens[0].text
     # sec = tokens[1].text
     # third = tokens[2].text
-    if fir not in ["What", "Who", "When"]:
+    if fir not in ["What", "Who", "When", "Who"]:
         return False
     if tokens[1].lemma_ != "be":
         return False
