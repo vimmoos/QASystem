@@ -20,6 +20,7 @@ property_translator = {
     'born': 'birth',
     'die': 'death',
     'directed': 'director',
+    'direct' : 'director',
     'played': 'performer',
     'performed': 'performer',
     'composed': 'composer',
@@ -152,16 +153,28 @@ def find_sub_obj(tokens: list):
             obj = phrase(child)
     return sentence.root, sub, obj
 
-def find_sub_obj_yes_no(tokens: list):
+def find_sub_obj_prop_yes_no(tokens: list):
     sentence = list(tokens.sents)[0]
     sub, obj = None, None
     for child in sentence.root.children:
         if child.dep_ == 'nsubj':
             sub = phrase(child)
             continue
-        if child.dep_ == 'pobj' or child.dep_ == 'dobj':
+        if child.dep_ == 'dobj':
             obj = phrase(child)
-    return sentence.root, sub, obj
+            continue
+        if child.dep_ == 'agent' or child.dep_ == 'prep':
+            for grandchild in child.children:
+                if grandchild.dep_ == 'pobj':
+                    obj = phrase(grandchild)
+    for word in tokens:
+        if word.pos_ == 'NOUN':
+            property = word.lemma_
+            break
+        if word.dep_ == 'ROOT' and word.pos_ == 'VERB':
+            property = word.lemma_
+            break
+    return str(property), sub, obj
 
 
 def basic_sub_obj(root, sub, obj):
@@ -217,11 +230,8 @@ def get_prop_sub(tokens):
 def parse_yes_no_question(question: str):
     type = 0
     tokens = nlp(question.strip())
-    root, sub, obj = find_sub_obj(tokens)
-    if tokens[0].text == "Is":
-        prop, sub = get_prop_sub(tokens)
-    else:
-        prop, obj = get_prop_sub(tokens)
+    prop, sub, obj = find_sub_obj_prop_yes_no(tokens)
+    print("sub: ",sub,", obj: ",obj)
     return prop, sub, obj, type
 
 
@@ -347,19 +357,24 @@ if __name__ == '__main__':
         temp_tok = nlp(line.strip())
         if temp_tok[0].text in ["Does", "Did", "Is"]: #yes/no question requires different output
             prop, sub, obj, type = parse_yes_no_question(line.strip())
+            # try:
+            #     prop = property_translator(prop.text)
+            # except:
+            #     print("hello")
             print(prop, sub, obj) #check prop sub and obj
             if temp_tok[0].text == "Is":
                 res_list = run_query(prop, sub, type)
-                check = make_request(obj)['search']
+                check = obj
             else:
                 res_list = run_query(prop, obj, type)
-                check = make_request(sub)['search']
+                check = sub
             try:
                 if res_list['results']['bindings'][0]['ansLabel']['value'] == check[0]['label']:
                     print("YES")
                 else:
                     print("NO")
             except TypeError:
+                print("TypeError")
                 print("Results: ",res_list)
                 print("Check: ", check)
 
