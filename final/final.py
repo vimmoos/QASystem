@@ -226,20 +226,23 @@ def run_query(prop, subj, type):
     try:
         subjs = make_request(subj)['search']
         if len(subjs) > 3:
-            subjs = subjs[:2]
+            subjs = subjs[:3]
         props = make_request(prop, True)['search']
         if len(props) > 3:
-            props = props[:2]
-        for x in range(len(props)):
-            for y in range(len(subjs)):
+            props = props[:3]
+        for x in range(len(subjs)):
+            for y in range(len(props)):
+                print(x,)
                 if type == 1:
-                    query = query_how.format(subjs[y]['id'], props[x]['id'])
+                    query = query_how.format(subjs[y-1]['id'], props[x-1]['id'])
+                    res = make_query(query)
+                    if res['results']['bindings']:
+                        return res
                 else:
                     query = query_template.format(subjs[y]['id'], props[x]['id'])
-
-                res = make_query(query)
-                if res['results']['bindings']:
-                    return res
+                    res = make_query(query)
+                    if res['results']['bindings']:
+                        return res
     except KeyError:
         return {
             'results': {
