@@ -29,6 +29,7 @@ property_translator = {
     'owns': 'owned by',
     'produced': 'producer',
     'casted': 'cast',
+    'première': 'publication date',
 }
 
 obj_or_sub = {
@@ -42,6 +43,7 @@ obj_or_sub = {
     'narrator': 1,
     'owned by': 1,
     'producer': 1,
+    'publication date': 1,
     'cast': 0,
 }
 
@@ -52,6 +54,21 @@ WHERE {{
   SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
 }}"""
 
+query_how = '''SELECT ?count
+                   WHERE {{
+                   {{
+                       SELECT (COUNT(?item) AS ?count)       # count the amount of properties from the entity
+                           WHERE{{
+                               wd:{} wdt:{} ?item   
+                           }}
+                   }}
+                       SERVICE wikibase:label {{               
+                       # ... include the labels
+                       bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"
+                       }}
+                   }}
+          '''
+
 nlp = spacy.load("en_core_web_sm")
 
 
@@ -60,8 +77,8 @@ def make_request(what: str, is_prop=False, url=search_url):
     return requests.get(
         url, {
             **({
-                'type': 'property'
-            } if is_prop else {}), 'search': what,
+                   'type': 'property'
+               } if is_prop else {}), 'search': what,
             **search_params
         }).json()
 
@@ -77,7 +94,7 @@ def make_string(tokens):
 # parsing old type of questions
 def parse_name(tokens: dict, break_tok):
     parsed_tokens = []
-    while (tokens[0].text == 'of' or tokens[0].text == 'the'):
+    while tokens[0].text == 'of' or tokens[0].text == 'the':
         tokens = tokens[1:]
     for (idx, token) in enumerate(tokens):
         if token.text == break_tok:
@@ -97,7 +114,7 @@ def is_trivial(tokens: list):
     fir = tokens[0].text
     # sec = tokens[1].text
     # third = tokens[2].text
-    if fir not in ["What", "Who"]:
+    if fir not in ["What", "Who", "When"]:
         return False
     if tokens[1].lemma_ != "be":
         return False
@@ -151,38 +168,93 @@ def when_where(tokens: list, root, sub, obj):
         "place of " + prop, sub) if tokens[0].text == "Where" else (prop, sub)
 
 
+# check whether the question is of type "how many"
+def is_how_many(tokens):
+    if tokens[0].text == "How" and tokens[1].text == "many":
+        return True
+    return False
+
+
+def get_prop_sub(tokens):
+    property, subject = None, None
+
+    # get subject of the sentence
+    if len(tokens.ents) != 0:
+        for ent in tokens.ents:
+            subject = ent.text
+    else:
+        for word in tokens[1:]:
+            if word.text.istitle():
+                subject = subject + word.text
+
+    if subject is None:
+        for word in tokens:
+            if word.dep_ in ['nsubj', 'dobj', 'pobj', 'nsubjpass'] and word.pos_ not in ['PRON']:
+                subject = phrase(word)
+
+    # get property of the sentence
+    for word in tokens:
+        if word.pos_ == 'NOUN':
+            property = word.lemma_
+            break
+        if word.dep_ == 'ROOT' and word.pos_ == 'VERB':
+            property = word.lemma_
+            break
+
+    return property, subject
+
+
 def parse_question(question: str):
     tokens = nlp(question.strip())
+    type = 0
     if is_trivial(tokens):
         prop, sub = trivial_question(tokens)
         prop, sub = make_string(prop), make_string(sub)
+    if is_how_many(tokens):
+        prop, sub = get_prop_sub(tokens)
+        type = 1
     else:
         root, sub, obj = find_sub_obj(tokens)
         prop, sub = when_where(tokens, root, sub, obj)
-    return prop, sub
+    print("Property: ", prop)
+    print("Entity: ", sub)
+    return prop, sub, type
 
 
 # added a trivial retry policy when there is no results
-def run_query(prop, subj):
-    subjs = make_request(subj)['search']
-    props = make_request(prop, True)['search']
-    for x in range(5):
-        for y in range(5):
-            res = make_query(
-                query_template.format(subjs[y]['id'], props[x]['id']))
-            if res['results']['bindings']:
-                return res
-    return {
-        'results': {
-            'bindings': ["No results found, try another question"]
+def run_query(prop, subj, type):
+    try:
+        subjs = make_request(subj)['search']
+        if len(subjs) > 3:
+            subjs = subjs[:3]
+        props = make_request(prop, True)['search']
+        if len(props) > 3:
+            props = props[:3]
+        for x in range(3):
+            for y in range(3):
+                if type == 1:
+                    query = query_how.format(subjs[y]['id'], props[x]['id'])
+                else:
+                    query = query_template.format(subjs[y - 1]['id'], props[x - 1]['id'])
+
+                res = make_query(query)
+                if res['results']['bindings']:
+                    return res
+    except KeyError:
+        return {
+            'results': {
+                'bindings': ["No results found, try another question"]
+            }
         }
-    }
 
 
 def print_results(data: dict):
     for item in data['results']['bindings']:
-        for var in item:
-            print(item[var]['value'])
+        try:
+            for var in item:
+                print(item[var]['value'])
+        except TypeError:
+            print(item)
 
 
 # old type of questions
@@ -199,15 +271,26 @@ q7 = "Which actor played Aragorn in Lord of the Rings?"
 q8 = "Which actors played James Bond?"
 q9 = "Who directed Interstellar?"
 
+# Timo's model
+q10 = "Who wrote Titanic?"
+q11 = "When was Tom Hanks born? "
+q12 = "Who composed the music for Dunkirk?"
+q13 = "Who created Star Wars?"
+q14 = "Who narrated The Big Lebowski?"
+q15 = "Who owns Pixar?"
+
+# Aylar's model
+q16 = "How many children does Will Smith have?"
+q17 = "How many awards did Morgan Freeman receive?"
+
 # TO DO --> they work in other models
-q10 = "When was the première of Iron Man?" # Timo's model
-q11 = "Who are the voice actors for Adventure Time?" # Lennard's model
-q12 = "Who designed the costumes for 'les intouchables'?" # Lennard's model
-q13 = "Who dubbed the voices for Adventure Time?" # Lennard's model
-q14 = "Who casted in Uncut Gems?" # Lennard's model
-q15 = "What was Interstellar influenced by?" # Lennard's model
-q16 = "How many children does Will Smith have?" # add query of Aylar's model "4.py"
-q17 = "Which directors were convicted of a sex crime?" # add query of Aylar's model "4.py"
+q20 = "When was the première of Iron Man?" # Timo's model --> doesn't work yet
+q21 = "Who are the voice actors for Adventure Time?"  # Lennard's model
+q22 = "Who designed the costumes for 'les intouchables'?"  # Lennard's model
+q23 = "Who dubbed the voices for Adventure Time?"  # Lennard's model
+q24 = "Who casted in Uncut Gems?"  # Lennard's model
+q25 = "What was Interstellar influenced by?"  # Lennard's model
+q27 = "Which directors were convicted of a sex crime?"  # add query of Aylar's model "4.py"
 
 qs_old = [q0, q1, q2]
 qs_sub_obj = [q3, q4, q5, q6, q7, q8, q9]
@@ -227,12 +310,12 @@ if __name__ == '__main__':
         "Ask a question or type test for check all the example questions:\n")
     if line.strip() == "test":
         for x in qs:
-            prop, sub = parse_question(x)
+            prop, sub, type = parse_question(x)
             print(
                 "========\nthe question that is being tested is: {}\nthe answer is"
-                .format(x))
-            print_results(run_query(prop, sub))
+                    .format(x))
+            print_results(run_query(prop, sub, type))
     else:
-        prop, sub = parse_question(line.strip())
+        prop, sub, type = parse_question(line.strip())
         print("the answer is:")
-        print_results(run_query(prop, sub))
+        print_results(run_query(prop, sub, type))
