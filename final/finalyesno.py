@@ -174,6 +174,17 @@ def find_sub_obj_prop_yes_no(tokens: list):
         if word.dep_ == 'ROOT' and word.pos_ == 'VERB':
             property = word.lemma_
             break
+
+    if not property:
+        check = None
+        for word in tokens:
+            if word.dep_ == 'nsubj':
+                check = word.lemma_
+            if word.dep_ != 'nsubj' and check != None:
+                property = word.lemma_
+                break
+
+
     return property, sub, obj
 
 
