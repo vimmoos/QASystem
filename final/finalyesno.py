@@ -20,7 +20,7 @@ property_translator = {
     'born': 'birth',
     'die': 'death',
     'directed': 'director',
-    'direct' : 'director',
+    'direct': 'director',
     'played': 'performer',
     'performed': 'performer',
     'composed': 'composer',
@@ -30,6 +30,7 @@ property_translator = {
     'owns': 'owned by',
     'produced': 'producer',
     'casted': 'cast',
+    'released': 'publication date',
     'première': 'publication date',
 }
 
@@ -44,7 +45,7 @@ obj_or_sub = {
     'narrator': 1,
     'owned by': 1,
     'producer': 1,
-    'publication date': 1,
+    'publication date': 0,
     'cast': 0,
 }
 
@@ -60,10 +61,10 @@ query_how = '''SELECT ?count
                    {{
                        SELECT (COUNT(?item) AS ?count)       # count the amount of properties from the entity
                            WHERE{{
-                               wd:{} wdt:{} ?item   
+                               wd:{} wdt:{} ?item
                            }}
                    }}
-                       SERVICE wikibase:label {{               
+                       SERVICE wikibase:label {{
                        # ... include the labels
                        bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"
                        }}
@@ -78,8 +79,8 @@ def make_request(what: str, is_prop=False, url=search_url):
     return requests.get(
         url, {
             **({
-                   'type': 'property'
-               } if is_prop else {}), 'search': what,
+                'type': 'property'
+            } if is_prop else {}), 'search': what,
             **search_params
         }).json()
 
@@ -153,6 +154,7 @@ def find_sub_obj(tokens: list):
             obj = phrase(child)
     return sentence.root, sub, obj
 
+
 def find_sub_obj_prop_yes_no(tokens: list):
     sentence = list(tokens.sents)[0]
     sub, obj = None, None
@@ -183,7 +185,6 @@ def find_sub_obj_prop_yes_no(tokens: list):
             if word.dep_ != 'nsubj' and check != None:
                 property = word.lemma_
                 break
-
 
     return property, sub, obj
 
@@ -224,7 +225,8 @@ def get_prop_sub(tokens):
 
     if subject is None:
         for word in tokens:
-            if word.dep_ in ['nsubj', 'dobj', 'pobj', 'nsubjpass'] and word.pos_ not in ['PRON']:
+            if word.dep_ in ['nsubj', 'dobj', 'pobj', 'nsubjpass'
+                             ] and word.pos_ not in ['PRON']:
                 subject = phrase(word)
 
     # get property of the sentence
@@ -238,11 +240,12 @@ def get_prop_sub(tokens):
 
     return property, subject
 
+
 def parse_yes_no_question(question: str):
     type = 0
     tokens = nlp(question.strip())
     prop, sub, obj = find_sub_obj_prop_yes_no(tokens)
-    print("sub: ",sub,", obj: ",obj)
+    print("sub: ", sub, ", obj: ", obj)
     return prop, sub, obj, type
 
 
@@ -274,14 +277,16 @@ def run_query(prop, subj, type):
             props = props[:3]
         for x in range(len(subjs)):
             for y in range(len(props)):
-                print(x,)
+                print(x, )
                 if type == 1:
-                    query = query_how.format(subjs[y-1]['id'], props[x-1]['id'])
+                    query = query_how.format(subjs[y - 1]['id'],
+                                             props[x - 1]['id'])
                     res = make_query(query)
                     if res['results']['bindings']:
                         return res
                 else:
-                    query = query_template.format(subjs[y]['id'], props[x]['id'])
+                    query = query_template.format(subjs[y]['id'],
+                                                  props[x]['id'])
                     res = make_query(query)
                     if res['results']['bindings']:
                         return res
@@ -302,8 +307,6 @@ def print_results(data: dict):
     except TypeError:
         print(data)
         print("==========")
-    
-        
 
 
 # old type of questions
@@ -333,7 +336,7 @@ q16 = "How many children does Will Smith have?"
 q17 = "How many awards did Morgan Freeman receive?"
 
 # TO DO --> they work in other models
-q20 = "When was the première of Iron Man?" # Timo's model --> doesn't work yet
+q20 = "When was the première of Iron Man?"  # Timo's model --> doesn't work yet
 q21 = "Who are the voice actors for Adventure Time?"  # Lennard's model
 q22 = "Who designed the costumes for 'les intouchables'?"  # Lennard's model
 q23 = "Who dubbed the voices for Adventure Time?"  # Lennard's model
@@ -344,7 +347,7 @@ q27 = "Which directors were convicted of a sex crime?"  # add query of Aylar's m
 qs_old = [q0, q1, q2]
 qs_sub_obj = [q3, q4, q5, q6, q7, q8, q9]
 
-qs = [*qs_old, *qs_sub_obj]
+qs = [*qs_old, *qs_sub_obj, q10, q11, q12, q13, q14, q15]
 
 # The types of questions covered beside the old type of question are:
 # When, Where, Which. Moreover, the most important thing is that all
@@ -362,17 +365,18 @@ if __name__ == '__main__':
             prop, sub, type = parse_question(x)
             print(
                 "========\nthe question that is being tested is: {}\nthe answer is"
-                    .format(x))
+                .format(x))
             print_results(run_query(prop, sub, type))
     else:
         temp_tok = nlp(line.strip())
-        if temp_tok[0].text in ["Does", "Did", "Is"]: #yes/no question requires different output
+        if temp_tok[0].text in ["Does", "Did", "Is"
+                                ]:  #yes/no question requires different output
             prop, sub, obj, type = parse_yes_no_question(line.strip())
             # try:
             #     prop = property_translator(prop.text)
             # except:
             #     print("hello")
-            print(prop, sub, obj) #check prop sub and obj
+            print(prop, sub, obj)  #check prop sub and obj
             if temp_tok[0].text == "Is":
                 res_list = run_query(prop, sub, type)
                 check = obj
@@ -392,7 +396,7 @@ if __name__ == '__main__':
                 yes_no = False
             except TypeError:
                 print("TypeError")
-                print("Results: ",res_list)
+                print("Results: ", res_list)
                 print("Check: ", check)
 
         else:
