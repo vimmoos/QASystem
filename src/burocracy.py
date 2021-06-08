@@ -1,4 +1,5 @@
 import requests
+import time
 
 search_url = 'https://www.wikidata.org/w/api.php'
 
@@ -67,7 +68,6 @@ def run_query(prop, subj, type):
             props = props[:3]
         for x in range(len(subjs)):
             for y in range(len(props)):
-                print(x, )
                 if type == 1:
                     query = query_how.format(subjs[x - 1]['id'],
                                              props[y - 1]['id'])
@@ -80,9 +80,6 @@ def run_query(prop, subj, type):
                     res = make_query(query)
                     if res['results']['bindings']:
                         return res
+                time.sleep(1)
     except KeyError:
-        return {
-            'results': {
-                'bindings': ["No results found, try another question"]
-            }
-        }
+        return "ERROR"
