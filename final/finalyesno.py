@@ -33,7 +33,8 @@ property_translator = {
     'released': 'publication date',
     'première': 'publication date',
     'actor': 'cast member',
-    'about': 'main subject'
+    'about': 'main subject',
+    'shot': 'country of origin'
 }
 
 obj_or_sub = {
@@ -51,6 +52,7 @@ obj_or_sub = {
     'cast': 0,
     'cast member': 0,
     'main subject': 0,
+    'country of origin': 0
 }
 
 query_template = """
@@ -161,6 +163,8 @@ def find_sub_obj(tokens: list):
         for word in sentence:
             if word.pos_ == 'ADP':
                 obj = word.text
+            if word.pos_ == 'NOUN':
+                obj = word.text
 
     return sentence.root, sub, obj
 
@@ -201,7 +205,7 @@ def find_sub_obj_prop_yes_no(tokens: list):
 
 def basic_sub_obj(root, sub, obj):
     try:
-        if obj == 'about':
+        if obj == 'about' or obj == 'shot':
             prop = property_translator[obj]
             idx = obj_or_sub[prop]
             return prop, sub if idx == 0 else obj
@@ -214,7 +218,7 @@ def basic_sub_obj(root, sub, obj):
 
 def when_where(tokens: list, root, sub, obj):
     prop, sub = basic_sub_obj(root, sub, obj)
-    if prop == "publication date": return prop, sub
+    if prop == "publication date" or prop == "country of origin" : return prop, sub
     return ("date of " + prop, sub) if tokens[0].text == "When" else (
         "place of " + prop, sub) if tokens[0].text == "Where" else (prop, sub)
 
