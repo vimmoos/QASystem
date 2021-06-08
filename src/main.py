@@ -1,11 +1,11 @@
-import src.parsing as p
-import src.utils as u
-import src.burocracy as b
-import src.translator as g
-import src.auxiliary as aux
 import csv
 import os
 import time
+
+import src.auxiliary as aux
+import src.burocracy as b
+import src.parsing as p
+import src.utils as u
 
 
 def read_csv(f):
