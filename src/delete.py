@@ -3,9 +3,53 @@ import spacy
 import requests
 import time
 
+# load the language model for English
 nlp = spacy.load("en_core_web_sm")
 
+# save the wikidata url
+search_url = 'https://www.wikidata.org/w/api.php'
 
+# save the query url
+query_url = 'https://query.wikidata.org/sparql'
+
+# search params for finding entities
+search_params = {
+    'action': 'wbsearchentities',
+    'language': 'en',
+    'format': 'json',
+}
+
+# use format json
+query_params = {
+    'format': 'json',
+}
+
+# standard query format
+query_template = """
+SELECT ?ansLabel
+WHERE {{
+        wd:{} wdt:{} ?ans.
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
+}}"""
+
+# query for how many questions
+query_how = '''SELECT ?count
+                   WHERE {{
+                   {{
+                       SELECT (COUNT(?item) AS ?count)       # count the amount of properties from the entity
+                           WHERE{{
+                               wd:{} wdt:{} ?item
+                           }}
+                   }}
+                       SERVICE wikibase:label {{
+                       # ... include the labels
+                       bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"
+                       }}
+                   }}
+          '''
+
+
+# function that phrases the word to find the Entity
 def phrase(word):
     children = []
     for child in word.subtree:
@@ -14,19 +58,24 @@ def phrase(word):
     return " ".join(children)
 
 
+# This function determines what the property of the sentence is
+# by using the property translator: if root doesn't return anything
+# then the function tries obj to see if that returns anything
+# else None is returned
 def basic_sub_obj(root, sub, obj):
     try:
-        if obj == 'about' or obj == 'shot':
-            prop = property_translator[obj]
-            idx = obj_or_sub[prop]
-            return prop, sub if idx == 0 else obj
         prop = property_translator[root.text]
         idx = obj_or_sub[prop]
     except KeyError:
-        return None, None
+        try:
+            prop = property_translator[obj]
+            idx = obj_or_sub[prop]
+        except KeyError:
+            return None, None
     return prop, sub if idx == 0 else obj
 
 
+# results are printed
 def print_results(data: dict):
     try:
         for item in data['results']['bindings']:
@@ -37,12 +86,12 @@ def print_results(data: dict):
         print(data)
         print("==========")
 
-
+# function transforms a variable to a string
 def make_string(tokens):
     return " ".join([tok.text for tok in tokens]).rstrip()
 
 
-# parsing old type of questions
+# parsing old type of questions in the form of 'of'
 def parse_name(tokens: dict, break_tok):
     parsed_tokens = []
     while tokens[0].text == 'of' or tokens[0].text == 'the':
@@ -55,12 +104,14 @@ def parse_name(tokens: dict, break_tok):
     return None
 
 
+# X of Y is substracted from the sentence:
+# X is prop and Y is subj
 def trivial_question(tokens: list):
     prop, idx = parse_name(tokens[2:], 'of')
     subj, idx = parse_name(tokens[idx + 2:], '?')
     return prop, subj
 
-
+# Property translator that translates different meanings to a specific property
 property_translator = {
     'born': 'birth',
     'die': 'death',
@@ -80,8 +131,11 @@ property_translator = {
     'actor': 'cast member',
     'about': 'main subject',
     'shot': 'country of origin',
+    'cast': 'cast member',
+    'members': 'cast member'
 }
 
+# checks whether the word is a obj or subj
 obj_or_sub = {
     'birth': 0,
     'death': 0,
@@ -107,26 +161,23 @@ def is_how_many(tokens):
     return False
 
 
+# function that checks whether the sentence is in the form of X of Y
 def is_trivial(tokens: list):
     fir = tokens[0].text
-    # sec = tokens[1].text
-    # third = tokens[2].text
     if fir not in ["What", "Who", "When", "Who"]:
         return False
     if tokens[1].lemma_ != "be":
         return False
-    # if sec not in ["is", "was", "were", "are"]:
-    #     return False
     if tokens[2].pos_ != "DET":
         return False
-    # if third not in ["the", "a", "an"]:
-    #     return False
     for tok in tokens[2:]:
         if tok.text == 'of':
             return True
     return False
 
 
+# function that returns 'date of' if a sentence starts with When
+# or returns 'place of' if a sentence starts with Where
 def when_where(tokens: list, root, sub, obj):
     prop, sub = basic_sub_obj(root, sub, obj)
     if prop == "publication date" or prop == "country of origin":
@@ -135,6 +186,7 @@ def when_where(tokens: list, root, sub, obj):
         "place of " + prop, sub) if tokens[0].text == "Where" else (prop, sub)
 
 
+# parser for yes/no question types
 def parse_yes_no_question(question: str):
     type = 0
     tokens = nlp(question.strip())
@@ -143,8 +195,11 @@ def parse_yes_no_question(question: str):
     return prop, sub, obj, type
 
 
+# checks how to extract the property and subject from a sentence based on the question form
 def parse_question(question: str):
     tokens = nlp(question.strip())
+    for word in tokens:
+        print(word.text, word.dep_, word.lemma_, word.pos_)
     type = 0
     if is_trivial(tokens):
         prop, sub = trivial_question(tokens)
@@ -161,6 +216,8 @@ def parse_question(question: str):
     return prop, sub, type
 
 
+# Find the object and subject of a sentence
+# if the object wasn't found, try different lemma's to find it
 def find_sub_obj(tokens: list):
     sentence = list(tokens.sents)[0]
     sub, obj = None, None
@@ -222,12 +279,12 @@ def get_prop_sub(tokens):
             subject = ent.text
     else:
         for word in tokens[1:]:
-            if word.text.istitle():
+            if word.text.istitle() or word.pos_ == "NUM":
                 subject = subject + word.text
 
     if subject is None:
         for word in tokens:
-            if word.dep_ in ['nsubj', 'dobj', 'pobj', 'nsubjpass'
+            if word.dep_ in ['nsubj', 'dobj', 'pobj', 'nsubjpass', 'nummod'
                              ] and word.pos_ not in ['PRON']:
                 subject = phrase(word)
 
@@ -241,43 +298,6 @@ def get_prop_sub(tokens):
             break
 
     return property, subject
-
-
-search_url = 'https://www.wikidata.org/w/api.php'
-
-query_url = 'https://query.wikidata.org/sparql'
-
-search_params = {
-    'action': 'wbsearchentities',
-    'language': 'en',
-    'format': 'json',
-}
-
-query_params = {
-    'format': 'json',
-}
-
-query_template = """
-SELECT ?ansLabel
-WHERE {{
-        wd:{} wdt:{} ?ans.
-  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en". }}
-}}"""
-
-query_how = '''SELECT ?count
-                   WHERE {{
-                   {{
-                       SELECT (COUNT(?item) AS ?count)       # count the amount of properties from the entity
-                           WHERE{{
-                               wd:{} wdt:{} ?item
-                           }}
-                   }}
-                       SERVICE wikibase:label {{
-                       # ... include the labels
-                       bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en"
-                       }}
-                   }}
-          '''
 
 
 # burocracy
@@ -311,8 +331,8 @@ def run_query(prop, subj, type):
         for x in range(len(subjs)):
             for y in range(len(props)):
                 if type == 1:
-                    query = query_how.format(subjs[x - 1]['id'],
-                                             props[y - 1]['id'])
+                    query = query_how.format(subjs[x]['id'],
+                                             props[y]['id'])
                     res = make_query(query)
                     if res['results']['bindings']:
                         return res
@@ -369,7 +389,7 @@ def get_search(parse):
                     search_id = get_search_id(word.text)
     else:
         for word in parse:
-            if word.dep_ in ['nsubj', 'dobj', 'pobj', 'nsubjpass'
+            if word.dep_ in ['nsubj', 'dobj', 'pobj', 'nsubjpass', 'nummod'
                              ] and word.pos_ not in ['PRON']:
                 search = phrase(word)
                 search_id = get_search_id(search)
@@ -413,13 +433,6 @@ def test_query(query_list):
                 for var in item:
                     print('{}'.format(item[var]['value']))
             return
-
-
-def phrase(word):
-    children = []
-    for child in word.subtree:
-        children.append(child.text)
-    return " ".join(children)
 
 
 def run_auxiliary(line):
@@ -485,6 +498,7 @@ def run(line):
 
 if __name__ == '__main__':
     line = input("1 Ask a question\n2 insert a path to a csv file:\n").strip()
+
 
     _, ext = os.path.splitext(line)
     if ext == '.csv':
