@@ -174,7 +174,7 @@ def find_sub_obj_prop_yes_no(tokens: list):
         if word.dep_ == 'ROOT' and word.pos_ == 'VERB':
             property = word.lemma_
             break
-    return str(property), sub, obj
+    return property, sub, obj
 
 
 def basic_sub_obj(root, sub, obj):
@@ -369,10 +369,16 @@ if __name__ == '__main__':
                 res_list = run_query(prop, obj, type)
                 check = sub
             try:
-                if res_list['results']['bindings'][0]['ansLabel']['value'] == check[0]['label']:
-                    print("YES")
+                yes_no = False
+                for item in res_list['results']['bindings']:
+                    for var in item:
+                        if item[var]['value'] == check:
+                            yes_no = True
+                if yes_no:
+                    print("Yes")
                 else:
-                    print("NO")
+                    print("No")
+                yes_no = False
             except TypeError:
                 print("TypeError")
                 print("Results: ",res_list)
