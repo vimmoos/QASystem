@@ -167,7 +167,7 @@ def find_sub_obj(tokens: list):
 
 def find_sub_obj_prop_yes_no(tokens: list):
     sentence = list(tokens.sents)[0]
-    sub, obj = None, None
+    sub, obj, property = None, None, None
     for child in sentence.root.children:
         if child.dep_ == 'nsubj':
             sub = phrase(child)
