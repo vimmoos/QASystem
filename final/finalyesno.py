@@ -20,7 +20,7 @@ property_translator = {
     'born': 'birth',
     'die': 'death',
     'directed': 'director',
-    'direct': 'director',
+    'direct' : 'director',
     'played': 'performer',
     'performed': 'performer',
     'composed': 'composer',
@@ -153,10 +153,9 @@ def find_sub_obj(tokens: list):
             obj = phrase(child)
     return sentence.root, sub, obj
 
-
 def find_sub_obj_prop_yes_no(tokens: list):
     sentence = list(tokens.sents)[0]
-    sub, obj, property = None, None, None
+    sub, obj = None, None
     for child in sentence.root.children:
         if child.dep_ == 'nsubj':
             sub = phrase(child)
@@ -175,16 +174,6 @@ def find_sub_obj_prop_yes_no(tokens: list):
         if word.dep_ == 'ROOT' and word.pos_ == 'VERB':
             property = word.lemma_
             break
-
-    if not property:
-        check = None
-        for word in tokens:
-            if word.dep_ == 'nsubj':
-                check = word.lemma_
-            if word.dep_ != 'nsubj' and check != None:
-                property = word.lemma_
-                break
-
     return property, sub, obj
 
 
@@ -238,12 +227,11 @@ def get_prop_sub(tokens):
 
     return property, subject
 
-
 def parse_yes_no_question(question: str):
     type = 0
     tokens = nlp(question.strip())
     prop, sub, obj = find_sub_obj_prop_yes_no(tokens)
-    print("sub: ", sub, ", obj: ", obj)
+    print("sub: ",sub,", obj: ",obj)
     return prop, sub, obj, type
 
 
@@ -275,9 +263,9 @@ def run_query(prop, subj, type):
             props = props[:3]
         for x in range(len(subjs)):
             for y in range(len(props)):
-                print(x, )
+                print(x,)
                 if type == 1:
-                    query = query_how.format(subjs[y - 1]['id'], props[x - 1]['id'])
+                    query = query_how.format(subjs[y-1]['id'], props[x-1]['id'])
                     res = make_query(query)
                     if res['results']['bindings']:
                         return res
@@ -303,6 +291,8 @@ def print_results(data: dict):
     except TypeError:
         print(data)
         print("==========")
+    
+        
 
 
 # old type of questions
@@ -332,7 +322,7 @@ q16 = "How many children does Will Smith have?"
 q17 = "How many awards did Morgan Freeman receive?"
 
 # TO DO --> they work in other models
-q20 = "When was the première of Iron Man?"  # Timo's model --> doesn't work yet
+q20 = "When was the première of Iron Man?" # Timo's model --> doesn't work yet
 q21 = "Who are the voice actors for Adventure Time?"  # Lennard's model
 q22 = "Who designed the costumes for 'les intouchables'?"  # Lennard's model
 q23 = "Who dubbed the voices for Adventure Time?"  # Lennard's model
@@ -365,13 +355,13 @@ if __name__ == '__main__':
             print_results(run_query(prop, sub, type))
     else:
         temp_tok = nlp(line.strip())
-        if temp_tok[0].text in ["Does", "Did", "Is"]:  # yes/no question requires different output
+        if temp_tok[0].text in ["Does", "Did", "Is"]: #yes/no question requires different output
             prop, sub, obj, type = parse_yes_no_question(line.strip())
             # try:
             #     prop = property_translator(prop.text)
             # except:
             #     print("hello")
-            print(prop, sub, obj)  # check prop sub and obj
+            print(prop, sub, obj) #check prop sub and obj
             if temp_tok[0].text == "Is":
                 res_list = run_query(prop, sub, type)
                 check = obj
@@ -391,7 +381,7 @@ if __name__ == '__main__':
                 yes_no = False
             except TypeError:
                 print("TypeError")
-                print("Results: ", res_list)
+                print("Results: ",res_list)
                 print("Check: ", check)
 
         else:
