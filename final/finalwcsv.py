@@ -416,11 +416,14 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en".
 
 
 def test_query(query_list):
+    # print("qlist: ",query_list)
+    result_found = False
     for x in query_list:
         data = requests.get(url, params={'query': x, 'format': 'json'}).json()
         if len(data['results']['bindings']) == 0:
             continue
         else:
+            result_found = True
             to_write = []
             for item in data['results']['bindings']:
                 for var in item:
@@ -431,6 +434,8 @@ def test_query(query_list):
             if write_to_csv:
                 writer.writerow(to_write)
             return
+    if not result_found:
+        writer.writerow([' '])
 
 
 def phrase(word):
