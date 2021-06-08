@@ -45,14 +45,14 @@ def run(line):
     try:
         res = run_system(line)
     except Exception as e:
-        print("DEBUG: {}".format(e))
+        print("DEBUG: {}".format(e))  # remove before submission
     finally:
         if res == None or res == "ERROR":
             time.sleep(1)
             try:
                 aux.run_auxiliary(line)
             except Exception as e:
-                print("DEBUG: {}".format(e))
+                print("DEBUG: {}".format(e))  # remove before submission
                 print("No results found")
             return
         else:
@@ -72,3 +72,12 @@ if __name__ == '__main__':
             run(x)
     else:
         run(line)
+
+# working
+# 2 3 4 7 9 10
+# missing
+# 1 5 6 8
+
+# the 8 the problem is recognizing 12 angry men. Basically the problem
+# is that when we call phrase angry men is not recognized as a
+# title.
