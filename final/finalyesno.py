@@ -102,19 +102,22 @@ def make_string(tokens):
 # parsing old type of questions
 def parse_name(tokens: dict, break_tok):
     parsed_tokens = []
-    while tokens[0].text == 'of' or tokens[0].text == 'the':
+    while tokens[0].text in break_tok or tokens[0].text == 'the':
         tokens = tokens[1:]
     for (idx, token) in enumerate(tokens):
-        if token.text == break_tok:
+        if token.text in break_tok:
             return parsed_tokens, idx + 1
         if token.pos_ == 'PUNCT': continue
         parsed_tokens.append(token)
     return None
 
 
+
 def trivial_question(tokens: list):
-    prop, idx = parse_name(tokens[2:], 'of')
-    subj, idx = parse_name(tokens[idx + 2:], '?')
+    prop, idx = parse_name(tokens[2:], ['of', 'for', 'from'])
+    print(len(prop))
+    subj, idx = parse_name(tokens[idx + 3:], '?')
+    print(prop, subj)
     return prop, subj
 
 
@@ -122,7 +125,7 @@ def is_trivial(tokens: list):
     fir = tokens[0].text
     # sec = tokens[1].text
     # third = tokens[2].text
-    if fir not in ["What", "Who", "When", "Who"]:
+    if fir not in ["What", "Who", "When"]:
         return False
     if tokens[1].lemma_ != "be":
         return False
@@ -133,7 +136,7 @@ def is_trivial(tokens: list):
     # if third not in ["the", "a", "an"]:
     #     return False
     for tok in tokens[2:]:
-        if tok.text == 'of':
+        if tok.text in ['of', 'for', 'from']:
             return True
     return False
 
@@ -251,7 +254,6 @@ def get_prop_sub(tokens):
     # get property of the sentence
     for word in tokens:
         if word.pos_ == 'NOUN':
-            print(word.lemma_)
             property = word.lemma_
             break
         if word.dep_ == 'ROOT' and word.pos_ == 'VERB':
@@ -265,7 +267,6 @@ def parse_yes_no_question(question: str):
     type = 0
     tokens = nlp(question.strip())
     prop, sub, obj = find_sub_obj_prop_yes_no(tokens)
-    print("sub: ", sub, ", obj: ", obj)
     return prop, sub, obj, type
 
 
@@ -273,6 +274,7 @@ def parse_question(question: str):
     tokens = nlp(question.strip())
     type = 0
     if is_trivial(tokens):
+        print("trivial")
         prop, sub = trivial_question(tokens)
         prop, sub = make_string(prop), make_string(sub)
     elif is_how_many(tokens):
@@ -282,7 +284,6 @@ def parse_question(question: str):
         prop, sub = get_prop_sub(tokens[1:])
     else:
         root, sub, obj = find_sub_obj(tokens)
-        print(sub, obj)
         prop, sub = when_where(tokens, root, sub, obj)
     print("Property: ", prop)
     print("Entity: ", sub)
