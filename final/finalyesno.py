@@ -157,7 +157,7 @@ def find_sub_obj(tokens: list):
 
 def find_sub_obj_prop_yes_no(tokens: list):
     sentence = list(tokens.sents)[0]
-    sub, obj = None, None
+    sub, obj, property = None, None, None
     for child in sentence.root.children:
         if child.dep_ == 'nsubj':
             sub = phrase(child)
@@ -200,6 +200,7 @@ def basic_sub_obj(root, sub, obj):
 
 def when_where(tokens: list, root, sub, obj):
     prop, sub = basic_sub_obj(root, sub, obj)
+    if prop == "publication date": return prop, sub
     return ("date of " + prop, sub) if tokens[0].text == "When" else (
         "place of " + prop, sub) if tokens[0].text == "Where" else (prop, sub)
 
