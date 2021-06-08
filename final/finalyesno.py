@@ -33,6 +33,8 @@ property_translator = {
     'released': 'publication date',
     'première': 'publication date',
     'actor': 'cast member',
+    'about': 'main subject',
+    'shot': 'country of origin'
 }
 
 obj_or_sub = {
@@ -49,6 +51,8 @@ obj_or_sub = {
     'publication date': 0,
     'cast': 0,
     'cast member': 0,
+    'main subject': 0,
+    'country of origin': 0
 }
 
 query_template = """
@@ -81,8 +85,8 @@ def make_request(what: str, is_prop=False, url=search_url):
     return requests.get(
         url, {
             **({
-                'type': 'property'
-            } if is_prop else {}), 'search': what,
+                   'type': 'property'
+               } if is_prop else {}), 'search': what,
             **search_params
         }).json()
 
@@ -154,12 +158,20 @@ def find_sub_obj(tokens: list):
             continue
         if child.dep_ == 'dobj':
             obj = phrase(child)
+
+    if obj == None:
+        for word in sentence:
+            if word.pos_ == 'ADP':
+                obj = word.text
+            if word.pos_ == 'NOUN':
+                obj = word.text
+
     return sentence.root, sub, obj
 
 
 def find_sub_obj_prop_yes_no(tokens: list):
     sentence = list(tokens.sents)[0]
-    sub, obj = None, None
+    sub, obj, property = None, None, None
     for child in sentence.root.children:
         if child.dep_ == 'nsubj':
             sub = phrase(child)
@@ -193,6 +205,10 @@ def find_sub_obj_prop_yes_no(tokens: list):
 
 def basic_sub_obj(root, sub, obj):
     try:
+        if obj == 'about' or obj == 'shot':
+            prop = property_translator[obj]
+            idx = obj_or_sub[prop]
+            return prop, sub if idx == 0 else obj
         prop = property_translator[root.text]
         idx = obj_or_sub[prop]
     except KeyError:
@@ -202,7 +218,7 @@ def basic_sub_obj(root, sub, obj):
 
 def when_where(tokens: list, root, sub, obj):
     prop, sub = basic_sub_obj(root, sub, obj)
-    if prop == "publication date": return prop, sub
+    if prop == "publication date" or prop == "country of origin" : return prop, sub
     return ("date of " + prop, sub) if tokens[0].text == "When" else (
         "place of " + prop, sub) if tokens[0].text == "Where" else (prop, sub)
 
@@ -262,10 +278,11 @@ def parse_question(question: str):
     elif is_how_many(tokens):
         prop, sub = get_prop_sub(tokens)
         type = 1
-    elif tokens[-1].text ==".":
+    elif tokens[-1].text == ".":
         prop, sub = get_prop_sub(tokens[1:])
     else:
         root, sub, obj = find_sub_obj(tokens)
+        print(sub, obj)
         prop, sub = when_where(tokens, root, sub, obj)
     print("Property: ", prop)
     print("Entity: ", sub)
@@ -349,6 +366,14 @@ q24 = "Who casted in Uncut Gems?"  # Lennard's model
 q25 = "What was Interstellar influenced by?"  # Lennard's model
 q27 = "Which directors were convicted of a sex crime?"  # add query of Aylar's model "4.py"
 
+# What year did Grease come out?
+# Who directed A Star Is Born?
+# Who is the main character from Mad Max?
+# Who are the screenwriters for The Place Beyong The Pines?
+# How many cast members are in 12 angry men?
+# Did Samuel L. Jackson produce Pulp Fiction?
+# What is the duration of I Am Legend?
+
 qs_old = [q0, q1, q2]
 qs_sub_obj = [q3, q4, q5, q6, q7, q8, q9]
 
@@ -370,18 +395,18 @@ if __name__ == '__main__':
             prop, sub, type = parse_question(x)
             print(
                 "\nthe question that is being tested is: {}\nthe answer is"
-                .format(x))
+                    .format(x))
             print_results(run_query(prop, sub, type))
     else:
         temp_tok = nlp(line.strip())
         if temp_tok[0].text in ["Does", "Did", "Is"
-                                ]:  #yes/no question requires different output
+                                ]:  # yes/no question requires different output
             prop, sub, obj, type = parse_yes_no_question(line.strip())
             # try:
             #     prop = property_translator(prop.text)
             # except:
             #     print("hello")
-            print(prop, sub, obj)  #check prop sub and obj
+            print(prop, sub, obj)  # check prop sub and obj
             if temp_tok[0].text == "Is":
                 res_list = run_query(prop, sub, type)
                 check = obj
