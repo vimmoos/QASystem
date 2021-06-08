@@ -29,7 +29,7 @@ def parse_question(question: str):
         prop, sub = t.trivial_question(tokens)
         prop, sub = u.make_string(prop), u.make_string(sub)
     elif p.is_how_many(tokens):
-        prop, sub = f.get_prop_sub(tokens[1:] if tokes[-1].text ==
+        prop, sub = f.get_prop_sub(tokens[1:] if tokens[-1].text ==
                                    "." else tokens)
         type = 1
     else:

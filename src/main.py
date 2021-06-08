@@ -83,7 +83,7 @@ def run_system(line):
                             print("No")
                             yes_no = False
         except TypeError:
-            print("TypeError\nResults: {}\nCheck {}\n".format(res_list, chekc))
+            print("TypeError\nResults: {}\nCheck {}\n".format(res_list, check))
 
     else:
         prop, sub, type = p.parse_question(line.strip())
