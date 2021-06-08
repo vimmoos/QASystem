@@ -32,6 +32,7 @@ property_translator = {
     'casted': 'cast',
     'released': 'publication date',
     'première': 'publication date',
+    'actor': 'cast member',
 }
 
 obj_or_sub = {
@@ -47,6 +48,7 @@ obj_or_sub = {
     'producer': 1,
     'publication date': 0,
     'cast': 0,
+    'cast member': 0,
 }
 
 query_template = """
@@ -200,6 +202,7 @@ def basic_sub_obj(root, sub, obj):
 
 def when_where(tokens: list, root, sub, obj):
     prop, sub = basic_sub_obj(root, sub, obj)
+    if prop == "publication date": return prop, sub
     return ("date of " + prop, sub) if tokens[0].text == "When" else (
         "place of " + prop, sub) if tokens[0].text == "Where" else (prop, sub)
 
@@ -232,6 +235,7 @@ def get_prop_sub(tokens):
     # get property of the sentence
     for word in tokens:
         if word.pos_ == 'NOUN':
+            print(word.lemma_)
             property = word.lemma_
             break
         if word.dep_ == 'ROOT' and word.pos_ == 'VERB':
@@ -258,6 +262,8 @@ def parse_question(question: str):
     elif is_how_many(tokens):
         prop, sub = get_prop_sub(tokens)
         type = 1
+    elif tokens[-1].text ==".":
+        prop, sub = get_prop_sub(tokens[1:])
     else:
         root, sub, obj = find_sub_obj(tokens)
         prop, sub = when_where(tokens, root, sub, obj)
@@ -277,7 +283,6 @@ def run_query(prop, subj, type):
             props = props[:3]
         for x in range(len(subjs)):
             for y in range(len(props)):
-                print(x, )
                 if type == 1:
                     query = query_how.format(subjs[y - 1]['id'],
                                              props[x - 1]['id'])
@@ -364,7 +369,7 @@ if __name__ == '__main__':
         for x in qs:
             prop, sub, type = parse_question(x)
             print(
-                "========\nthe question that is being tested is: {}\nthe answer is"
+                "\nthe question that is being tested is: {}\nthe answer is"
                 .format(x))
             print_results(run_query(prop, sub, type))
     else:
