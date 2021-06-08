@@ -4,6 +4,7 @@ import src.burocracy as b
 import src.translator as g
 import csv
 import os
+import time
 
 
 def read_csv(f):
@@ -93,6 +94,7 @@ def run_system(line):
 def run(line):
     try:
         run_system(line)
+        time.sleep(1)
     except Exception as e:
         print(e)
 

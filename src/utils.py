@@ -14,6 +14,10 @@ def phrase(word):
 
 def basic_sub_obj(root, sub, obj):
     try:
+        if obj == 'about' or obj == 'shot':
+            prop = g.property_translator[obj]
+            idx = g.obj_or_sub[prop]
+            return prop, sub if idx == 0 else obj
         prop = g.property_translator[root.text]
         idx = g.obj_or_sub[prop]
     except KeyError:

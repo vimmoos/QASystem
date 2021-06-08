@@ -8,7 +8,8 @@ import src.utils as u
 
 def when_where(tokens: list, root, sub, obj):
     prop, sub = u.basic_sub_obj(root, sub, obj)
-    if prop == "publication date": return prop, sub
+    if prop == "publication date" or prop == "country of origin":
+        return prop, sub
     return ("date of " + prop, sub) if tokens[0].text == "When" else (
         "place of " + prop, sub) if tokens[0].text == "Where" else (prop, sub)
 

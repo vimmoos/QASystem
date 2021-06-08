@@ -11,12 +11,18 @@ def find_sub_obj(tokens: list):
             continue
         if child.dep_ == 'dobj':
             obj = u.phrase(child)
+    if obj == None:
+        for word in sentence:
+            if word.pos_ == 'ADP':
+                obj = word.text
+            if word.pos_ == 'NOUN':
+                obj = word.text
     return sentence.root, sub, obj
 
 
 def find_sub_obj_prop_yes_no(tokens: list):
     sentence = list(tokens.sents)[0]
-    sub, obj = None, None
+    sub, obj, property = None, None, None
     for child in sentence.root.children:
         if child.dep_ == 'nsubj':
             sub = u.phrase(child)

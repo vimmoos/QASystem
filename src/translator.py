@@ -17,6 +17,8 @@ property_translator = {
     'released': 'publication date',
     'première': 'publication date',
     'actor': 'cast member',
+    'about': 'main subject',
+    'shot': 'country of origin',
 }
 
 obj_or_sub = {
@@ -33,4 +35,6 @@ obj_or_sub = {
     'publication date': 0,
     'cast': 0,
     'cast member': 0,
+    'main subject': 0,
+    'country of origin': 0,
 }
