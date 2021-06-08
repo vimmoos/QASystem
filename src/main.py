@@ -90,6 +90,13 @@ def run_system(line):
         u.print_results(b.run_query(prop, sub, type))
 
 
+def run(line):
+    try:
+        run_system(line)
+    except Exception as e:
+        print(e)
+
+
 if __name__ == '__main__':
     line = input("1 Ask a question\n2 insert a path to a csv file:\n").strip()
 
@@ -100,6 +107,6 @@ if __name__ == '__main__':
             print(
                 "========\nthe question that is being tested is: {}\nthe answer is"
                 .format(x))
-            run_system(x)
+            run(x)
     else:
-        run_system(line)
+        run(line)

@@ -50,12 +50,10 @@ def make_request(what: str, is_prop=False, url=search_url):
 
 def make_query(what: str, url=query_url):
     res = requests.get(url, {**query_params, 'query': what})
-    try:
-        res = res.json()
-    except Error:
-        print("JSONDecodeError!\n response: {}".format(res))
-
-    return res
+    if res.status_code != 200:
+        raise Exception('Received invalid status code {}: {}'.format(
+            res.status_code, res.reason))
+    return res.json()
 
 
 # added a trivial retry policy when there is no results
