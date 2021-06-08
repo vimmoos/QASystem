@@ -366,6 +366,14 @@ q24 = "Who casted in Uncut Gems?"  # Lennard's model
 q25 = "What was Interstellar influenced by?"  # Lennard's model
 q27 = "Which directors were convicted of a sex crime?"  # add query of Aylar's model "4.py"
 
+# What year did Grease come out?
+# Who directed A Star Is Born?
+# Who is the main character from Mad Max?
+# Who are the screenwriters for The Place Beyong The Pines?
+# How many cast members are in 12 angry men?
+# Did Samuel L. Jackson produce Pulp Fiction?
+# What is the duration of I Am Legend?
+
 qs_old = [q0, q1, q2]
 qs_sub_obj = [q3, q4, q5, q6, q7, q8, q9]
 
