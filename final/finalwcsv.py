@@ -151,7 +151,6 @@ def parse_yes_no_question(question: str):
     type = 0
     tokens = nlp(question.strip())
     prop, sub, obj = find_sub_obj_prop_yes_no(tokens)
-    print("sub: ", sub, ", obj: ", obj)
     return prop, sub, obj, type
 
 
@@ -168,8 +167,6 @@ def parse_question(question: str):
     else:
         root, sub, obj = find_sub_obj(tokens)
         prop, sub = when_where(tokens, root, sub, obj)
-    print("Property: ", prop)
-    print("Entity: ", sub)
     return prop, sub, type
 
 
@@ -416,7 +413,6 @@ SERVICE wikibase:label { bd:serviceParam wikibase:language "[AUTO_LANGUAGE],en".
 
 
 def test_query(query_list):
-    # print("qlist: ",query_list)
     result_found = False
     for x in query_list:
         data = requests.get(url, params={'query': x, 'format': 'json'}).json()
