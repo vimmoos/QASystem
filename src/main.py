@@ -2,6 +2,15 @@ import src.parsing as p
 import src.utils as u
 import src.burocracy as b
 import src.translator as g
+import csv
+import os
+
+
+def read_csv(f):
+    with open(f, newline='') as csvfile:
+        reader = csv.reader(csvfile, delimiter='\t', quotechar='|')
+        return [row[1] for row in reader]
+
 
 # old type of questions
 q0 = "What is the duration of I Am Legend?"
@@ -51,49 +60,46 @@ qs = [*qs_old, *qs_sub_obj, q10, q11, q12, q13, q14, q15]
 # property_translator. NOTE: it is therefore trivial to add new verbs
 # to this variable, therefore the system can be easily enhanced.
 
+
+def run_system(line):
+    temp_tok = u.nlp(line)
+    if temp_tok[0].text in ["Does", "Did",
+                            "Is"]:  #yes/no question requires different output
+        prop, sub, obj, type = p.parse_yes_no_question(line.strip())
+
+        print(prop, sub, obj)  #check prop sub and obj
+        res_list = b.run_query(prop, sub, type)
+        check = obj if temp_tok[0].text == "Is" else sub
+        try:
+            yes_no = False
+            for item in res_list['results']['bindings']:
+                for var in item:
+                    if item[var]['value'] == check:
+                        yes_no = True
+                        if yes_no:
+                            print("Yes")
+                        else:
+                            print("No")
+                            yes_no = False
+        except TypeError:
+            print("TypeError\nResults: {}\nCheck {}\n".format(res_list, chekc))
+
+    else:
+        prop, sub, type = p.parse_question(line.strip())
+        print("the answer is:")
+        u.print_results(b.run_query(prop, sub, type))
+
+
 if __name__ == '__main__':
-    line = input(
-        "Ask a question or type test for check all the example questions:\n")
-    if line.strip() == "test":
+    line = input("1 Ask a question\n2 insert a path to a csv file:\n").strip()
+
+    _, ext = os.path.splitext(line)
+    if ext == '.csv':
+        qs = read_csv(line)
         for x in qs:
-            prop, sub, type = p.parse_question(x)
             print(
                 "========\nthe question that is being tested is: {}\nthe answer is"
                 .format(x))
-            u.print_results(b.run_query(prop, sub, type))
+            run_system(x)
     else:
-        temp_tok = u.nlp(line.strip())
-        if temp_tok[0].text in ["Does", "Did", "Is"
-                                ]:  #yes/no question requires different output
-            prop, sub, obj, type = p.parse_yes_no_question(line.strip())
-            # try:
-            #     prop = property_translator(prop.text)
-            # except:
-            #     print("hello")
-            print(prop, sub, obj)  #check prop sub and obj
-            if temp_tok[0].text == "Is":
-                res_list = b.run_query(prop, sub, type)
-                check = obj
-            else:
-                res_list = b.run_query(prop, obj, type)
-                check = sub
-            try:
-                yes_no = False
-                for item in res_list['results']['bindings']:
-                    for var in item:
-                        if item[var]['value'] == check:
-                            yes_no = True
-                if yes_no:
-                    print("Yes")
-                else:
-                    print("No")
-                yes_no = False
-            except TypeError:
-                print("TypeError")
-                print("Results: ", res_list)
-                print("Check: ", check)
-
-        else:
-            prop, sub, type = p.parse_question(line.strip())
-            print("the answer is:")
-            u.print_results(b.run_query(prop, sub, type))
+        run_system(line)

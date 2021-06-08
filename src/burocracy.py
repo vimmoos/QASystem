@@ -49,7 +49,13 @@ def make_request(what: str, is_prop=False, url=search_url):
 
 
 def make_query(what: str, url=query_url):
-    return requests.get(url, {**query_params, 'query': what}).json()
+    res = requests.get(url, {**query_params, 'query': what})
+    try:
+        res = res.json()
+    except Error:
+        print("JSONDecodeError!\n response: {}".format(res))
+
+    return res
 
 
 # added a trivial retry policy when there is no results
@@ -65,14 +71,14 @@ def run_query(prop, subj, type):
             for y in range(len(props)):
                 print(x, )
                 if type == 1:
-                    query = query_how.format(subjs[y - 1]['id'],
-                                             props[x - 1]['id'])
+                    query = query_how.format(subjs[x - 1]['id'],
+                                             props[y - 1]['id'])
                     res = make_query(query)
                     if res['results']['bindings']:
                         return res
                 else:
-                    query = query_template.format(subjs[y]['id'],
-                                                  props[x]['id'])
+                    query = query_template.format(subjs[x]['id'],
+                                                  props[y]['id'])
                     res = make_query(query)
                     if res['results']['bindings']:
                         return res
